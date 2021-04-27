@@ -1,9 +1,17 @@
 from werkzeug.datastructures import ImmutableMultiDict
 import numpy as np
 from pickle import load
-from flask import Flask, render_template,request,url_for, redirect
+from flask import Flask, render_template,request,url_for, redirect, session
+import pymongo
+import bcrypt
 model = load(open('model.pkl', 'rb'))
 app = Flask(__name__)
+app.secret_key = "testing"
+
+client = pymongo.MongoClient("mongodb+srv://admin-anupam:Test123@cluster0.img6b.mongodb.net/loginDB")
+db = client.get_database('total_records')
+records = db.register
+
 
 symptoms = ['itching', 'skinrash', 'nodalskineruptions', 'continuoussneezing',
        'shivering', 'chills', 'jointpain', 'stomachpain', 'acidity',
@@ -94,24 +102,103 @@ def symptoms_to_disease(symptoms):
     return disease_code_dict[disease[0]]
     
 
-
-
-
-@app.route('/', methods=["POST", "GET"])
-def home():
-    
+@app.route("/", methods=['post', 'get'])
+def index():
+    message = ''
+    if "email" in session:
+        return redirect(url_for("predict"))
     if request.method == "POST":
+        user = request.form.get("fullname")
+        email = request.form.get("email")
         
-        form_values = request.form.to_dict(flat=False)
-        pred_values = [i[0] for i in form_values.values()]
-        pred_disease = symptoms_to_disease(pred_values)
+        password1 = request.form.get("password1")
+        password2 = request.form.get("password2")
+        
+        user_found = records.find_one({"name": user})
+        email_found = records.find_one({"email": email})
+        if user_found:
+            message = 'There already is a user by that name'
+            return render_template('index.html', message=message)
+        if email_found:
+            message = 'This email already exists in database'
+            return render_template('index.html', message=message)
+        if password1 != password2:
+            message = 'Passwords should match!'
+            return render_template('index.html', message=message)
+        else:
+            hashed = bcrypt.hashpw(password2.encode('utf-8'), bcrypt.gensalt())
+            user_input = {'name': user, 'email': email, 'password': hashed}
+            records.insert_one(user_input)
+            
+            user_data = records.find_one({"email": email})
+            new_email = user_data['email']
+   
+            return render_template('predict.html', email=new_email)
+    return render_template('index.html')
+
+@app.route('/logged_in')
+def logged_in():
+    if "email" in session:
+        email = session["email"]
+        return render_template('predict.html', email=email)
+    else:
+        return redirect(url_for("login"))
+
+
+@app.route("/login", methods=["POST", "GET"])
+def login():
+    message = 'Please login to your account'
+    if "email" in session:
+        return redirect(url_for("predict"))
+
+    if request.method == "POST":
+        email = request.form.get("email")
+        password = request.form.get("password")
+
+       
+        email_found = records.find_one({"email": email})
+        if email_found:
+            email_val = email_found['email']
+            passwordcheck = email_found['password']
+            
+            if bcrypt.checkpw(password.encode('utf-8'), passwordcheck):
+                session["email"] = email_val
+                return redirect(url_for('predict'))
+            else:
+                if "email" in session:
+                    return redirect(url_for("predict"))
+                message = 'Wrong password'
+                return render_template('login.html', message=message)
+        else:
+            message = 'Email not found'
+            return render_template('login.html', message=message)
+    return render_template('login.html', message=message)
+
+
+@app.route("/logout", methods=["POST", "GET"])
+def logout():
+    if "email" in session:
+        session.pop("email", None)
+        return render_template("signout.html")
+    else:
+        return render_template('index.html')
+
+
+# @app.route('/', methods=["POST", "GET"])
+# def home():
+    
+#     if request.method == "POST":
+        
+#         form_values = request.form.to_dict(flat=False)
+#         pred_values = [i[0] for i in form_values.values()]
+#         pred_disease = symptoms_to_disease(pred_values)
         
 
         
-        return render_template('index1.html', data=pred_disease)
+#         return render_template('home.html', data=pred_disease)
         
     
-    return render_template('index1.html')
+#     return render_template('home.html')
 
 
 @app.route('/predict', methods=["POST", "GET"])
@@ -125,10 +212,10 @@ def predict():
         
 
         
-        return render_template('index.html', data=pred_disease)
+        return render_template('predict.html', data=pred_disease)
         
     
-    return render_template('index.html')
+    return render_template('predict.html')
 
 if __name__ == '__main__':
     app.run(port=3000, debug=True)
