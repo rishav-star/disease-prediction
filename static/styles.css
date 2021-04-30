@@ -1,0 +1,54 @@
+body{
+    margin: 0;
+    text-align: center;
+    height: 110vh;
+    font-family: 'Montserrat', sans-serif;
+    background-image: -webkit-linear-gradient(65deg, #A683E3 50%, #E4E9FD 50% );
+}
+.description{
+    font-family: 'Sacramento', cursive;
+    margin-bottom: 20px;
+    margin-top: 20px;
+}
+h1 {
+    font-size: 5.25rem;
+    color: #66BFBF;
+}
+.form{
+    display: flex;
+    flex-direction: column;
+    width: 30%;
+    text-align: center;
+    /* align-items: center; */
+    margin: auto;
+}
+.symptom_select{
+    margin-top: 10px;
+    padding: 5px;
+    margin-bottom: 10px;
+    color: #159e9e;
+}
+.btn{
+    cursor: pointer;
+    outline: none;
+    margin: 12px 0px;
+    padding: 10px 21px;
+    border-radius: 7px;
+    border: 2px solid #ef8172;
+    font-size: 18px;
+    background: #ef8172;
+    color: #ffffff;
+    font-weight: bold;
+    font-family: 'Heebo', sans-serif;
+}
+.btn:hover{
+    background: #ff4c68;
+    color: #ffffff;
+}
+.predicted-disease{
+    font-family: 'Montserrat', sans-serif;
+    font-size: 2.5rem;
+}
+p{
+    color: #ffffff;
+}
